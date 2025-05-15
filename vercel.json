@@ -1,14 +1,11 @@
 {
   "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "installCommand": "echo 'Installation handled by buildCommand'",
   "builds": [
     {
       "src": "frontend/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "envFiles": [
-          ".env"
-        ]
-      }
+      "use": "@vercel/next"
     },
     {
       "src": "backend/api.py",
