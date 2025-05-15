@@ -5,9 +5,8 @@
       "src": "frontend/package.json",
       "use": "@vercel/next",
       "config": {
-        "rootDirectory": "frontend",
         "envFiles": [
-          "../.env"
+          ".env"
         ]
       }
     },
