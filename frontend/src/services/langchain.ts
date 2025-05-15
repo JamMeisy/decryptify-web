@@ -16,7 +16,7 @@ export class LangChainService {
     if (process.env.GOOGLE_API_KEY) {
       this.model = new ChatGoogleGenerativeAI({
         apiKey: process.env.GOOGLE_API_KEY,
-        modelName: "gemini-pro",
+        model: "gemini-pro",
         temperature: 0.7,
       });
     } else {

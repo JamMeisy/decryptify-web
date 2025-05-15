@@ -12,54 +12,63 @@ from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.tools import Tool
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 
-# Load environment variables from project root
-load_dotenv(
-    dotenv_path=os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
-    )
-)
+# Load environment variables - compatible with both local dev and Vercel
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+# Vercel will use its environment variables system, not the .env file
 
-# Initialize Firebase
+# Initialize Firebase - serverless compatible
 try:
     if not firebase_admin._apps:
-        # Try different paths for credentials
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(current_dir)
-        default_cred_path = os.path.join(current_dir, "firebase-credentials.json")
-        root_cred_path = os.path.join(root_dir, "firebase-credentials.json")
-
-        # Check environment variable, then try root directory, then backend directory
-        cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", None)
-        if cred_path and not os.path.isabs(cred_path):
-            cred_path = os.path.join(root_dir, cred_path)
-
-        if not cred_path or not os.path.exists(cred_path):
-            if os.path.exists(root_cred_path):
-                cred_path = root_cred_path
-            elif os.path.exists(default_cred_path):
-                cred_path = default_cred_path
-
-        if os.path.exists(cred_path):
-            cred = credentials.Certificate(cred_path)
-            firebase_admin.initialize_app(cred)
-            db = firestore.client()
+        # In Vercel serverless environment, use environment variables
+        if os.getenv("FIREBASE_SERVICE_ACCOUNT"):
+            try:
+                # Use service account JSON from environment variable
+                cred_dict = json.loads(os.getenv("FIREBASE_SERVICE_ACCOUNT"))
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                db = firestore.client()
+            except Exception as e:
+                print(f"Error initializing Firebase from env var: {e}")
+                db = None
         else:
-            print(
-                f"Warning: Firebase credentials not found at {cred_path}. Chat history will not be saved."
-            )
-            db = None
+            # Try different paths for credentials file (for local development)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            root_dir = os.path.dirname(current_dir)
+            default_cred_path = os.path.join(current_dir, "firebase-credentials.json")
+            root_cred_path = os.path.join(root_dir, "firebase-credentials.json")
+            
+            # Check environment variable, then try root directory, then backend directory
+            cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", None)
+            if cred_path and not os.path.isabs(cred_path):
+                cred_path = os.path.join(root_dir, cred_path)
+            
+            if not cred_path or not os.path.exists(cred_path):
+                if os.path.exists(root_cred_path):
+                    cred_path = root_cred_path
+                elif os.path.exists(default_cred_path):
+                    cred_path = default_cred_path
+            
+            if os.path.exists(cred_path):
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
+                db = firestore.client()
+            else:
+                print(f"Warning: Firebase credentials not found. Chat history will not be saved.")
+                db = None
+
 except Exception as e:
     print(f"Firebase initialization error: {e}")
     db = None
 
-# Replace the existing LLM initialization
+# Initialize LangChain LLM
 llm = ChatOpenAI(
-    model="gpt-4o1-",  # You can use "gpt-3.5-turbo" for a more affordable option
+    model="gpt-3.5-turbo",  # You can use "gpt-3.5-turbo" for a more affordable option
     openai_api_key=os.getenv("OPENAI_API_KEY"),
     temperature=0.7,
 )
@@ -341,7 +350,7 @@ async def get_chat(chat_id: str):
 
 
 async def process_message(chat_id: str, message: str) -> str:
-    """Process a message using the Decryptify agent"""
+    """Process a message using the Decryptify agent - optimized for serverless"""
     try:
         # Get or create memory for this chat
         memory = get_or_create_memory(chat_id)
@@ -369,7 +378,6 @@ async def process_message(chat_id: str, message: str) -> str:
 
         if is_crypto_query:
             # Extract project name from queries like "What's the trust score for Bitcoin?"
-            # or "Analyze Ethereum" or just "Bitcoin"
             project_name = message
             for phrase in [
                 "what's the trust score for",
@@ -388,21 +396,23 @@ async def process_message(chat_id: str, message: str) -> str:
             project_name = project_name.strip("?.,!").strip()
 
             # If it's a simple project name query, use the decryptify tool directly
-            if (
-                len(project_name.split()) <= 3
-            ):  # Simple queries like "Bitcoin" or "Ethereum Classic"
-                # Pass the LLM to the decryptify tool so it can calculate the trust score & find related projects
+            if len(project_name.split()) <= 3:  # Simple queries like "Bitcoin" or "Ethereum Classic"
+                # Import in function scope to avoid circular imports in serverless environment
                 from agents.decryptify import decryptify_analysis
 
                 response = decryptify_analysis(project_name, llm=llm)
                 memory.chat_memory.add_user_message(message)
                 memory.chat_memory.add_ai_message(response)
                 return response
-
-        # For all other queries, use the agent
-        agent = create_react_agent(llm=llm, tools=tools, prompt=agent_prompt)
-
-        # Create agent executor
+        
+        # For all other queries, use the agent with a shorter timeout for serverless
+        agent = create_react_agent(
+            llm=llm,
+            tools=tools,
+            prompt=agent_prompt
+        )
+        
+        # Create agent executor with serverless-friendly settings
         agent_executor = AgentExecutor(
             agent=agent,
             tools=tools,
