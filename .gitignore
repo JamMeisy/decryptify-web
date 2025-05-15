@@ -75,3 +75,6 @@ app.yaml
 # Google ADK docs
 /adk-docs/
 adk-docs/*
+
+**.env
+**.env.local

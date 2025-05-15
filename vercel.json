@@ -1,14 +1,29 @@
 {
-  "functions": {
-    "backend/api.py": {
-      "runtime": "python3.9",
-      "maxDuration": 60
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "backend/api.py",
+      "use": "@vercel/python@3.9"
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "/backend/api.py"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/api.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ]
 }
