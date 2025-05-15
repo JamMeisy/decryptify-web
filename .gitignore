@@ -77,4 +77,4 @@ app.yaml
 adk-docs/*
 
 **.env
-**.env.local
+**.env.local!/frontend/firebase-credentials.json
