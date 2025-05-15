@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@coinbase/onchainkit": "^0.38.13",
     "@heroicons/react": "^2.2.0",
+    "@tanstack/react-query": "^5.76.1",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.21",
     "firebase": "^11.7.3",
@@ -21,7 +23,9 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^9.0.0",
     "remark-gfm": "^4.0.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "viem": "^2.29.3",
+    "wagmi": "^2.15.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
