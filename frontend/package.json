@@ -7,7 +7,8 @@
     "dev": "next dev --turbopack",
     "build": "node prepare.js && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "node ./scripts/install-platform-deps.js"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.13",
@@ -29,7 +30,8 @@
     "remark-gfm": "^4.0.0",
     "uuid": "^11.1.0",
     "viem": "^2.29.3",
-    "wagmi": "^2.15.3"
+    "wagmi": "^2.15.3",
+    "lightningcss-linux-x64-gnu": "4.1.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -38,5 +40,11 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4.1.6",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "4.1.6",
+    "lightningcss-linux-x64-musl": "4.1.6",
+    "lightningcss-darwin-x64": "4.1.6",
+    "lightningcss-win32-x64-msvc": "4.1.6"
   }
 }
